@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Logger;
 
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
@@ -41,6 +42,7 @@ public abstract class DockerComputerConnectorTest {
     protected static final String COMMON_IMAGE_USERNAME = "jenkins";
     protected static final String COMMON_IMAGE_HOMEDIR = "/home/jenkins/agent";
     protected static final String INSTANCE_CAP = "10";
+    private static final Logger LOGGER = Logger.getLogger(DockerComputerConnectorTest.class.getName());
 
     private static int testNumber;
     private String cloudName;
@@ -54,10 +56,12 @@ public abstract class DockerComputerConnectorTest {
     public void setUp() {
         testNumber++;
         cloudName = "DockerCloudFor" + this.getClass().getSimpleName() + testNumber;
+        LOGGER.info("setup finished for test case");
     }
 
     @After
     public void cleanup() throws Exception {
+        LOGGER.fine("Cleanup test case");
         terminateAllDockerNodes();
         final long startTimeMs = System.currentTimeMillis();
         final Long maxWaitTimeMs = 60 * 1000L;
@@ -74,6 +78,7 @@ public abstract class DockerComputerConnectorTest {
     }
 
     private void terminateAllDockerNodes() {
+        LOGGER.info("terminate Docker nodes about tp start");
         final TaskListener tl = new StreamTaskListener(System.out, Charset.forName("UTF-8"));
         for( final Node n : j.jenkins.getNodes() ) {
             if( n instanceof DockerTransientNode ) {
@@ -84,11 +89,13 @@ public abstract class DockerComputerConnectorTest {
     }
 
     private boolean dockerIsStillBusy() throws Exception {
+        LOGGER.info("starting dockerIsStillBusy");
         for( final Node n : j.jenkins.getNodes() ) {
             if( n instanceof DockerTransientNode ) {
                 return true;
             }
         }
+        LOGGER.info("Number of nodes "+ (j.jenkins.getNodes()==null?"null":j.jenkins.getNodes().size()));
         for( final Cloud c : j.jenkins.clouds) {
             if( c instanceof DockerCloud) {
                 DockerCloud cloud = (DockerCloud)c;
@@ -112,6 +119,7 @@ public abstract class DockerComputerConnectorTest {
 
     protected void should_connect_agent(DockerTemplate template) throws IOException, ExecutionException, InterruptedException, TimeoutException {
 
+        LOGGER.info("starting shouldConnectAgent");
         // FIXME on CI windows nodes don't have Docker4Windows
         Assume.assumeFalse(SystemUtils.IS_OS_WINDOWS);
 
@@ -125,9 +133,11 @@ public abstract class DockerComputerConnectorTest {
         final FreeStyleProject project = j.createFreeStyleProject("test-docker-ssh");
         project.setAssignedLabel(Label.get(LABEL));
         project.getBuildersList().add(new Shell("whoami"));
+        LOGGER.info("built freestyle poroject");
         final QueueTaskFuture<FreeStyleBuild> scheduledBuild = project.scheduleBuild2(0);
         try {
             final FreeStyleBuild build = scheduledBuild.get(60L, TimeUnit.SECONDS);
+            LOGGER.info("freestyle build ready");
             Assert.assertTrue(build.getResult() == Result.SUCCESS);
             Assert.assertTrue(build.getLog().contains("jenkins"));
         } finally {

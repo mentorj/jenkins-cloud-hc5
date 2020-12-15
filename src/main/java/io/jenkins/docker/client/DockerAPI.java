@@ -4,11 +4,11 @@ import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.VersionCmd;
 import com.github.dockerjava.api.model.Version;
-import com.github.dockerjava.core.DefaultDockerClientConfig;
-import com.github.dockerjava.core.DockerClientBuilder;
-import com.github.dockerjava.core.SSLConfig;
-import com.github.dockerjava.netty.NettyDockerCmdExecFactory;
+import com.github.dockerjava.core.*;
+//import com.github.dockerjava.netty.NettyDockerCmdExecFactory;
 
+import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
+import com.github.dockerjava.transport.DockerHttpClient;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
@@ -201,6 +201,7 @@ public class DockerAPI extends AbstractDescribableImpl<DockerAPI> {
                 LOGGER.info("Cached connection {} to {}", client, cacheKey);
                 CLIENT_CACHE.cacheAndIncrementUsage(cacheKey, client);
             }
+            LOGGER.debug("DockerAPI, getOrMakeClient will leave...");
             return client;
         }
     }
@@ -242,28 +243,26 @@ public class DockerAPI extends AbstractDescribableImpl<DockerAPI> {
     @SuppressWarnings("resource")
     private static SharableDockerClient makeClient(final String dockerUri, final String credentialsId,
             final Integer readTimeoutInMillisecondsOrNull, final Integer connectTimeoutInMillisecondsOrNull) {
-        NettyDockerCmdExecFactory cmdExecFactory = null;
+        //NettyDockerCmdExecFactory cmdExecFactory = null;
         DockerClient actualClient = null;
         try {
-            cmdExecFactory = new NettyDockerCmdExecFactory()
-                    .withReadTimeout(readTimeoutInMillisecondsOrNull)
-                    .withConnectTimeout(connectTimeoutInMillisecondsOrNull);
-            final DefaultDockerClientConfig.Builder configBuilder = new DefaultDockerClientConfig.Builder()
-                    .withDockerHost(dockerUri)
-                    .withCustomSslConfig(toSSlConfig(credentialsId));
-            actualClient = DockerClientBuilder.getInstance(configBuilder)
-                .withDockerCmdExecFactory(cmdExecFactory)
-                .build();
+            DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
+            DockerHttpClient httpClient = new ApacheDockerHttpClient.Builder()
+                    .dockerHost(config.getDockerHost())
+                    .sslConfig(config.getSSLConfig())
+                    .build();
+            actualClient = DockerClientImpl.getInstance(config, httpClient);
+
             final SharableDockerClient multiUsageClient = new SharableDockerClient(actualClient);
             // if we've got this far, we're going to succeed, so we need to ensure that we
             // don't close the resources we're returning.
-            cmdExecFactory = null;
+
             actualClient = null;
             return multiUsageClient;
         } finally {
             // these will no-op if we're successfully returning a value, but in any error
             // cases we should ensure that we don't leak precious resources.
-            closeAndLogAnyExceptions(cmdExecFactory);
+          //  closeAndLogAnyExceptions(cmdExecFactory);
             closeAndLogAnyExceptions(actualClient);
         }
     }

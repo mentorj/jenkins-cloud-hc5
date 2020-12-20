@@ -143,7 +143,7 @@ public class DockerAPI extends AbstractDescribableImpl<DockerAPI> {
      * taking and releasing is relatively cheap. They're not closed "for real"
      * until they've been unused for some time.
      * </p>
-     * 
+     *
      * @return A raw {@link DockerClient} pointing at our docker service
      *         endpoint.
      */
@@ -157,7 +157,7 @@ public class DockerAPI extends AbstractDescribableImpl<DockerAPI> {
      * long-duration activities that can "go quiet" for a long period of time,
      * e.g. pulling a docker image from a registry or building a docker image.
      * Most users should just call {@link #getClient()} instead.
-     * 
+     *
      * @param activityTimeoutInSeconds
      *            The activity timeout, in seconds. A value less than one means
      *            no timeout.
@@ -246,7 +246,9 @@ public class DockerAPI extends AbstractDescribableImpl<DockerAPI> {
         //NettyDockerCmdExecFactory cmdExecFactory = null;
         DockerClient actualClient = null;
         try {
-            DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
+            DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder()
+		    .withDockerHost(dockerUri)
+                    .build();
             DockerHttpClient httpClient = new ApacheDockerHttpClient.Builder()
                     .dockerHost(config.getDockerHost())
                     .sslConfig(config.getSSLConfig())

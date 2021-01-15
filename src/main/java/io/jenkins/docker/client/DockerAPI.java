@@ -246,13 +246,15 @@ public class DockerAPI extends AbstractDescribableImpl<DockerAPI> {
         //NettyDockerCmdExecFactory cmdExecFactory = null;
         DockerClient actualClient = null;
         try {
-            DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
+            DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder()
+                    .withDockerHost(dockerUri)
+                    .build();
             DockerHttpClient httpClient = new ApacheDockerHttpClient.Builder()
                     .dockerHost(config.getDockerHost())
                     .sslConfig(config.getSSLConfig())
                     .build();
             actualClient = DockerClientImpl.getInstance(config, httpClient);
-
+            LOGGER.info("Built a client = " + actualClient.toString());
             final SharableDockerClient multiUsageClient = new SharableDockerClient(actualClient);
             // if we've got this far, we're going to succeed, so we need to ensure that we
             // don't close the resources we're returning.

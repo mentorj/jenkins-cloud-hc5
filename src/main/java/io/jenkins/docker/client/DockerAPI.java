@@ -248,6 +248,8 @@ public class DockerAPI extends AbstractDescribableImpl<DockerAPI> {
         try {
             DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder()
                     .withDockerHost(dockerUri)
+                    .withDockerTlsVerify(true)
+                    //.withDockerCertPath("~/.certs") //hardcoded for the  moment!!
                     .build();
             DockerHttpClient httpClient = new ApacheDockerHttpClient.Builder()
                     .dockerHost(config.getDockerHost())
@@ -280,6 +282,7 @@ public class DockerAPI extends AbstractDescribableImpl<DockerAPI> {
     }
 
     private static SSLConfig toSSlConfig(String credentialsId) {
+        LOGGER.info("building SSL config for credentials ="+ credentialsId);
         if (credentialsId == null) return null;
 
         DockerServerCredentials credentials = firstOrNull(
@@ -289,6 +292,7 @@ public class DockerAPI extends AbstractDescribableImpl<DockerAPI> {
                 ACL.SYSTEM,
                 Collections.<DomainRequirement>emptyList()),
             withId(credentialsId));
+        LOGGER.info("found credentials ="+ (credentials==null?"null":credentials.toString()));
         return credentials == null ? null :
             new DockerServerCredentialsSSLConfig(credentials);
     }
@@ -306,13 +310,16 @@ public class DockerAPI extends AbstractDescribableImpl<DockerAPI> {
                 socket.connect(unix);
                 return socket;
             }
-
+            LOGGER.info("getSocket : before building SSLConfig");
             final SSLConfig sslConfig = toSSlConfig(dockerHost.getCredentialsId());
             if (sslConfig != null) {
+                LOGGER.info("found an  SSLConfig for credentials ="+ dockerHost.getCredentialsId()+ " building SSLSocketFactory");
                 return sslConfig.getSSLContext().getSocketFactory().createSocket(uri.getHost(), uri.getPort());
             }
+            LOGGER.info("defaulting to non plain Sockets");
             return new Socket(uri.getHost(), uri.getPort());
         } catch (Exception e) {
+            LOGGER.warn("Got exception :"+ e.getMessage() );
             throw new IOException("Failed to create a Socker for docker URI " + dockerHost.getUri(), e);
         }
     }

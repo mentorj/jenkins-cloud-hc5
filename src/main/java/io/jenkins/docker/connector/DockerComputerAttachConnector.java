@@ -289,7 +289,10 @@ public class DockerComputerAttachConnector extends DockerComputerConnector imple
                 execId = exec.getId();
             }
             final String js = "{ \"Detach\": false, \"Tty\": false }";
+            logger.println("DockerComputerAttachConnector , abou getting socker");
             final Socket socket = api.getSocket();
+
+            logger.println("Socket obtained :"+ socket.getPort() + " " + socket.getRemoteSocketAddress());
             final OutputStream out = socket.getOutputStream();
             final InputStream in = socket.getInputStream();
             final PrintWriter w = new PrintWriter(new OutputStreamWriter(out, StandardCharsets.US_ASCII));
